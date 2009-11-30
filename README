@@ -3,22 +3,51 @@
 ==============================================
 
 Author
------------
+-------------
 Jang-Ho Hwang, rath@xrath.com
 
+
+What is this?
+-------------
+A benchmark tool to replay all http-requests which are captured in a real 
+environment, not a fake one. We have to test our web applications with good 
+and even bad parameters or headers. In many cases, we cannot expect most kinds 
+of requests that are sent by users. As a result, we usually do test in a small 
+boundary, and will see a sort of bugs in a real environment. 
+
+With replay benchmark tool, you can capture users' http-request to file system.
+then, can test your modified web application with captured requests. 
+
+
+
 Requirement
------------
-Java 6 or greater
+-------------
+Java Standard Edition 6 or greater version.
 
 
 Usage
------------
+-------------
 java -jar rb.jar -d samples -c 100 -n 20000 http://myservice.com/
 
 
 Expected result
 ---------------
+Number of sent requests
+2,000,000
 
+Total time to consume
+06h 21m 10s
+
+                  min     avg      max
+Response time     3ms   260ms    822ms
+
+Response codes     
+OK        200:      1,883,293  ( 94.16%)
+Moved     302:         17,382  (  0.86%)
+Forbidden 403:          1,238  (  0.06%)
+Not found 404:              0  (  0.00%)
+Error     500:        103,290  (  5.16%)
+Death     503:            383  (  0.01%)
 
 
 Options
@@ -40,18 +69,22 @@ java.util.Map objects. These maps are not stored in java.util.List. Instead,
 each map have its own stream header. Following is a code snippet which is 
 intended to capture a series of http-requests. 
 
-  FileOutputStream fos = ...
-  for(a-request : http-requests) {
-    ObjectOutputStream oos = new ObjectOutputStream(fos); 
-    oos.writeObject(a-request);
-  }
+  FileOutputStream fos = new FileOutputStream(String.format(
+    "captured-%d.log", Thread.currentThread().getId()), true);
+
+  ObjectOutputStream oos = new ObjectOutputStream(fos); 
+  oos.writeObject(*a-http-request*);
+  oos.flush();
+
+  fos.close();
 
 A http-request is a java.util.Map object which includes following attributes. 
 
   REMOTE_ADDR  : a IP in String. but not be used in this benchmark tool.
   METHOD       : HTTP Method in String . it can be GET, POST, DELETE, PUT.
   HEADERS      : a Map which is includes all HTTP request headers. Its generic
-                 type is Map<String, String>. 
+                 type is Map<String, String>. This attributes are useful 
+                 when you want to test in gzip/deflate request.
   REQUEST_URI  : a URI in String. Be careful that this value doesn't include
                  querystring even in GET metho.d.
   PARAMETERS   : a Map which is stored all parameters included in a request. 
