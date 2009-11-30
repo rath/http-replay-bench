@@ -41,9 +41,9 @@ each map have its own stream header and footer. Following is a code snippet
 which is intended to capture. 
 
   FileOutputStream fos = ...
-  for(a-request : http-requests)
+  for(a-request : http-requests) {
     ObjectOutputStream oos = new ObjectOutputStream(fos); 
-	oos.writeObject(a-request);
+    oos.writeObject(a-request);
   }
 
 A http-request is a java.util.Map object which includes following attributes. 
