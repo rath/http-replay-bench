@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="http-replay-benchmark client" default="build">
+
+    <property name="src" value="src"/>
+    <property name="build" value="build"/>
+
+    <path id="classpath">
+        <fileset dir="lib">
+            <include name="*.jar" />
+        </fileset>
+    </path>
+
+    <target name="compile">
+        <mkdir dir="${build}" />
+        <javac srcdir="${src}" destdir="${build}"
+            debug="yes"
+            source="1.7"
+            target="1.7"
+            encoding="UTF-8">
+            <classpath refid="classpath" />
+        </javac>
+    </target>
+
+    <target name="build" depends="compile">
+        <jar destfile="rb.jar" basedir="${build}" compress="yes" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${build}"/>
+		<delete file="rb.jar" />
+    </target>
+
+</project>
