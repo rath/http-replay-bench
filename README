@@ -1,6 +1,6 @@
-=============================================
-  HTTP Benchmark tool with recorded packets 
-=============================================
+==============================================
+  HTTP Benchmark tool with captured requests
+==============================================
 
 Author
 -----------
@@ -37,8 +37,8 @@ Format of Captured Requests
 ---------------------------
 Captured requests are stored with Java Object Serialization. A sequence of 
 java.util.Map objects. These maps are not stored in java.util.List. Instead,
-each map have its own stream header and footer. Following is a code snippet 
-which is intended to capture. 
+each map have its own stream header. Following is a code snippet which is 
+intended to capture a series of http-requests. 
 
   FileOutputStream fos = ...
   for(a-request : http-requests) {
@@ -50,14 +50,14 @@ A http-request is a java.util.Map object which includes following attributes.
 
   REMOTE_ADDR  : a IP in String. but not be used in this benchmark tool.
   METHOD       : HTTP Method in String . it can be GET, POST, DELETE, PUT.
+  HEADERS      : a Map which is includes all HTTP request headers. Its generic
+                 type is Map<String, String>. 
+  REQUEST_URI  : a URI in String. Be careful that this value doesn't include
+                 querystring even in GET metho.d.
   PARAMETERS   : a Map which is stored all parameters included in a request. 
                  Its generic type is Map<String, Object>. the format of a 
                  value is generally String and can be String[].
-  REQUEST_URI  : a URI in String. Be careful that this value doesn't include
-                 querystring even in GET metho.d.
   TIMESTAMP    : timestamp when this request was sent that represented by Long.
-  HEADERS      : a Map which is includes all HTTP request headers. Its generic
-                 type is Map<String, String>. 
 
 
 
