@@ -52,7 +52,7 @@ A http-request is a java.util.Map object which includes following attributes.
   METHOD       : HTTP Method in String . it can be GET, POST, DELETE, PUT.
   PARAMETERS   : a Map which is stored all parameters included in a request. 
                  Its generic type is Map<String, Object>. the format of a 
-				 value is generally String and can be String[].
+                 value is generally String and can be String[].
   REQUEST_URI  : a URI in String. Be careful that this value doesn't include
                  querystring even in GET metho.d.
   TIMESTAMP    : timestamp when this request was sent that represented by Long.
