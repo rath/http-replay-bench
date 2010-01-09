@@ -101,7 +101,7 @@ public class Client extends Thread {
 				} 
 				totalRequestCount++;
 				count++;
-				if( repeatCount!=-1 && count > repeatCount ) {
+				if( repeatCount!=-1 && count >= repeatCount ) {
 					go = false;
 					break;
 				}
