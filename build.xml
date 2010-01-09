@@ -15,15 +15,17 @@
         <mkdir dir="${build}" />
         <javac srcdir="${src}" destdir="${build}"
             debug="yes"
-            source="1.7"
-            target="1.7"
+            source="1.6"
+            target="1.6"
             encoding="UTF-8">
             <classpath refid="classpath" />
         </javac>
     </target>
 
     <target name="build" depends="compile">
-        <jar destfile="rb.jar" basedir="${build}" compress="yes" />
+        <jar destfile="rb.jar" basedir="${build}" 
+			compress="yes" 
+			manifest="${src}/Manifest.mf" />
     </target>
 
     <target name="clean">
