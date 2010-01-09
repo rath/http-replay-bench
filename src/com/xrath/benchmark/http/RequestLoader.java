@@ -47,7 +47,7 @@ public class RequestLoader {
 			fis.close();
 		}
 		long l1 = System.currentTimeMillis();
-		System.out.println( ret.size() + " http request loaded in " + (l1-l0) + "ms");
+		System.out.println( ret.size() + " http requests were loaded in " + (l1-l0) + "ms");
 		l0 = System.currentTimeMillis();
 		Collections.sort(ret, new Comparator<Map<String, Object>>() {
 			@Override
