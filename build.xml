@@ -26,6 +26,10 @@
         <jar destfile="rb.jar" basedir="${build}" 
 			compress="yes" 
 			manifest="${src}/Manifest.mf" />
+		<jar destfile="rb-capture-plugin.jar"
+			basedir="${build}"
+			compress="yes"
+			includes="com/xrath/benchmark/http/plugins/*.class" />
     </target>
 
     <target name="clean">

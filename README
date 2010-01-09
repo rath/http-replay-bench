@@ -93,4 +93,25 @@ A http-request is a java.util.Map object which includes following attributes.
   TIMESTAMP    : timestamp when this request was sent that represented by Long.
 
 
+Install rb-capture-plugin.jar into your web application
+---------------------------------------------------
+1) copy rb-capture-plugin.jar into WEB-INF/lib
+2) Open web.xml file and append below block.
+
+  <filter>
+    <filter-name>request-capture</filter-name>
+    <filter-class>com.xrath.benchmark.http.plugins.RequestCaptureFilter</filter-class>
+    <init-param>
+      <param-name>output-directory</param-name>
+      <param-value>/tmp</param-value>
+    </init-param>
+  </filter>
+  
+  <filter-mapping>
+    <filter-name>request-capture</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+3) Done! 
+
 
