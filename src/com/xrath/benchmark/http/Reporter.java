@@ -28,7 +28,7 @@ public class Reporter {
 	private Map<Integer, Integer> agg = new HashMap<Integer, Integer>();
 	
 	private DecimalFormat fmtNum = new DecimalFormat("#,###");
-	private DecimalFormat fmtReal = new DecimalFormat("###.00");
+	private DecimalFormat fmtReal = new DecimalFormat("##0.00");
 	private SimpleDateFormat fmtTime = new SimpleDateFormat("HH'h' mm'm' ss's'");
 	
 	private Map<Integer, String> codeLabel = new HashMap<Integer, String>();
@@ -43,6 +43,14 @@ public class Reporter {
 		codeLabel.put(500, "Server error");
 		codeLabel.put(502, "Bad gateway");
 		codeLabel.put(503, "Down");
+		
+		agg.put(200, 0);
+		agg.put(302, 0);
+		agg.put(403, 0);
+		agg.put(404, 0);
+		agg.put(500, 0);
+		agg.put(502, 0);
+		agg.put(503, 0);
 	}
 
 	public void setClients(List<Client> clients) {
