@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import com.xrath.benchmark.http.util.ZeroBasedMap;
+
 public class Reporter {
 	private List<Client> clients;
 	
@@ -20,12 +22,22 @@ public class Reporter {
 	private int errorSocketTimeout = 0;
 	private int errorUnknown = 0;
 	
+	// Global variables
 	private int okCount = 0;
 	private long okTotalTime = 0L;
 	private long okMinTime = Long.MAX_VALUE;
 	private long okMaxTime = Long.MIN_VALUE;
 
-	private Map<Integer, Integer> agg = new HashMap<Integer, Integer>();
+	private ZeroBasedMap<Integer, Long> agg = new ZeroBasedMap<Integer, Long>();
+	
+	// URI base variables
+	private ZeroBasedMap<String, Long> uriTotalRequest = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkCount = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkTotalTime = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkMinTime = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkMaxTime = new ZeroBasedMap<String, Long>();
+	
+	private Map<String, ZeroBasedMap<Integer, Long>> uriStatusAggregate = new HashMap<String, ZeroBasedMap<Integer, Long>>();
 	
 	private DecimalFormat fmtNum = new DecimalFormat("#,###");
 	private DecimalFormat fmtReal = new DecimalFormat("##0.00");
@@ -44,13 +56,13 @@ public class Reporter {
 		codeLabel.put(502, "Bad gateway");
 		codeLabel.put(503, "Down");
 		
-		agg.put(200, 0);
-		agg.put(302, 0);
-		agg.put(403, 0);
-		agg.put(404, 0);
-		agg.put(500, 0);
-		agg.put(502, 0);
-		agg.put(503, 0);
+		agg.put(200, 0L);
+		agg.put(302, 0L);
+		agg.put(403, 0L);
+		agg.put(404, 0L);
+		agg.put(500, 0L);
+		agg.put(502, 0L);
+		agg.put(503, 0L);
 	}
 
 	public void setClients(List<Client> clients) {
@@ -73,13 +85,34 @@ public class Reporter {
 			okMinTime = Math.min(okMinTime, c.getOkMinTime());
 			okMaxTime = Math.max(okMaxTime, c.getOkMaxTime());
 			
-			Map<Integer, Integer> a = c.getStatusAggregate();
+			ZeroBasedMap<Integer, Long> a = c.getStatusAggregate();
 			for(Integer code : a.keySet()) {
-				if( !agg.containsKey(code) ) {
-					agg.put(code, 0);
-				}
-				agg.put(code, agg.get(code)+a.get(code));
+				agg.add(code, a.get(code));
 			}
+			
+			// URI based 
+			uriOkCount.addAll(c.getUriOkCount());
+			uriOkTotalTime.addAll(c.getUriOkTotalTime());
+			
+			Map<String, Long> maxTimes = c.getUriOkMaxTime();
+			for(String uri : maxTimes.keySet()) {
+				if( !uriOkMinTime.containsKey(uri) )
+					uriOkMinTime.put(uri, Long.MAX_VALUE);
+				uriOkMaxTime.put(uri, Math.max(maxTimes.get(uri), uriOkMaxTime.get(uri)));
+			}
+			Map<String, Long> minTimes = c.getUriOkMinTime();
+			for(String uri : minTimes.keySet()) {
+				uriOkMinTime.put(uri, Math.min(minTimes.get(uri), uriOkMinTime.get(uri)));
+			}
+			
+			Map<String, ZeroBasedMap<Integer, Long>> uriA = c.getUriStatusAggregate();
+			for(String uri : uriA.keySet()) {
+				if( !uriStatusAggregate.containsKey(uri) ) 
+					uriStatusAggregate.put(uri, new ZeroBasedMap<Integer, Long>());
+				uriStatusAggregate.get(uri).addAll(uriA.get(uri));
+			}
+			
+			uriTotalRequest.addAll(c.getUriTotalRequest());
 		}
 	}
 	
@@ -93,11 +126,19 @@ public class Reporter {
 		out.println("* Total time to consume");
 		out.println( fmtTime.format(new Date(System.currentTimeMillis()-Main.startTime)) );
 		out.println();
-		out.printf ("%-14s %7s %7s %7s%n", "", "min", "avg", "max");
+		out.printf ("%-30s %7s %7s %7s%n", "", "min", "avg", "max");
+		
 		if( okCount==0 ) 
-			out.printf ("%-14s %7s %7s %7s%n", "Response time", "N/A", "N/A", "N/A");
+			out.printf ("%-30s %7s %7s %7s%n", "Response time", "N/A", "N/A", "N/A");
 		else
-			out.printf ("%-14s %5dms %5dms %5dms%n", "Response time", okMinTime, okTotalTime/okCount, okMaxTime);
+			out.printf ("%-30s %5dms %5dms %5dms%n", "Response time", okMinTime, okTotalTime/okCount, okMaxTime);
+		for(String uri : uriOkTotalTime.keySet()) {
+			out.printf ("%-30s %5dms %5dms %5dms%n", uri,
+					uriOkMinTime.get(uri), 
+					uriOkTotalTime.get(uri) / uriOkCount.get(uri), 
+					uriOkMaxTime.get(uri));
+		}
+		
 		out.println();
 		out.println("* Response codes");
 		
@@ -108,15 +149,23 @@ public class Reporter {
 			String label = codeLabel.get(code);
 			if( label==null )
 				label = "";
-			out.printf("%-12s %3d: %20s  (%6s%%)%n", label, code, 
+			out.printf("%-20s %3d: %20s  (%6s%%)%n", label, code, 
 				fmtNum.format(agg.get(code)), 
 				fmtReal.format((double)agg.get(code) / (double)totalRequestCount * 100.0));
-				
+			
+			for(String uri : uriStatusAggregate.keySet()) {
+				Map<Integer, Long> sa = uriStatusAggregate.get(uri);
+				if( sa.get(code)==0 ) 
+					continue;
+				out.printf("   %-26s %16s  (%6s%%)%n", uri, 
+						fmtNum.format(sa.get(code)), 
+						fmtReal.format((double)sa.get(code) / (double)uriTotalRequest.get(uri) * 100.0));
+			}
 		}
 		out.println();
 		out.println("* Errors");
-		out.printf("%-18s %19d%n", "Connection refused", errorConnect);
-		out.printf("%-18s %19d%n", "Request timeout", errorSocketTimeout);
-		out.printf("%-18s %19d%n", "Unknown", errorUnknown);
+		out.printf("%-18s %27d%n", "Connection refused", errorConnect);
+		out.printf("%-18s %27d%n", "Request timeout", errorSocketTimeout);
+		out.printf("%-18s %27d%n", "Unknown", errorUnknown);
 	}
 }

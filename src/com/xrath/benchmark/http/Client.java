@@ -30,6 +30,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 
 import com.xrath.benchmark.http.impl.GzipDecompressingEntity;
+import com.xrath.benchmark.http.util.ZeroBasedMap;
 
 /**
  * 
@@ -52,7 +53,16 @@ public class Client extends Thread {
 	private long okMinTime = Long.MAX_VALUE;
 	private long okMaxTime = Long.MIN_VALUE;
 
-	private Map<Integer, Integer> statusAggregate = new HashMap<Integer, Integer>();
+	private ZeroBasedMap<Integer, Long> statusAggregate = new ZeroBasedMap<Integer, Long>();
+	
+	// URI base variables
+	private ZeroBasedMap<String, Long> uriTotalRequest = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkCount = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkTotalTime = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkMinTime = new ZeroBasedMap<String, Long>();
+	private ZeroBasedMap<String, Long> uriOkMaxTime = new ZeroBasedMap<String, Long>();
+	
+	private Map<String, ZeroBasedMap<Integer, Long>> uriStatusAggregate = new HashMap<String, ZeroBasedMap<Integer, Long>>();
 	
 	public Client() {
 		HttpParams httpParams = new BasicHttpParams();
@@ -113,11 +123,12 @@ public class Client extends Thread {
 	protected void requestImpl( Map<String, Object> req ) throws IOException {
 		HttpRequestBase base = null;
 		String method = (String)req.get("METHOD");
+		String uri = (String)req.get("REQUEST_URI");
 		if( method.equals("GET") ) 
-			base = new HttpGet(host + req.get("REQUEST_URI") + createQueryString((Map<String, String>) req.get("PARAMETERS")));
+			base = new HttpGet(host + uri + createQueryString((Map<String, String>) req.get("PARAMETERS")));
 		else
 		if( method.equals("POST") ) 
-			base = new HttpPost(host + req.get("REQUEST_URI"));
+			base = new HttpPost(host + uri);
 		else
 			throw new UnsupportedOperationException("GET/POST only, but " + method);
 			
@@ -142,30 +153,49 @@ public class Client extends Thread {
 		HttpResponse response = client.execute(base);
 		long l1 = System.currentTimeMillis();
 		HttpEntity entity = response.getEntity();
+		entity.consumeContent();
+		
+		long time = l1-l0;
 		
 		StatusLine sl = response.getStatusLine();
 		int code = sl.getStatusCode();
+		
+		// Global statistics
 		if( !statusAggregate.containsKey(code) ) {
-			statusAggregate.put(code, 0);
+			statusAggregate.put(code, 0L);
 		}
 		statusAggregate.put(code, statusAggregate.get(code)+1);
 		
 		if( code==200 ) {
-			long time = l1-l0;
 			okCount++;
 			okTotalTime += time;
 			okMinTime = Math.min(okMinTime, time);
 			okMaxTime = Math.max(okMaxTime, time);
 		}
+
+		// URI based statistics
+		if( !uriStatusAggregate.containsKey(uri) ) {
+			ZeroBasedMap<Integer, Long> uriAgg = new ZeroBasedMap<Integer, Long>();
+			uriStatusAggregate.put(uri, uriAgg);
+		}
+		ZeroBasedMap<Integer, Long> uriAgg = uriStatusAggregate.get(uri);
+		if( uriAgg==null ) {
+			uriStatusAggregate.put(uri, new ZeroBasedMap<Integer, Long>());
+			uriAgg = uriStatusAggregate.get(uri);
+		}
+		uriAgg.add(code, 1L);
 		
-//		System.out.printf("%d %5dms %s%n", 
-//			response.getStatusLine().getStatusCode(),
-//			(l1-l0),
-//			req.get("REQUEST_URI"));
+		if( code==200 ) {
+			if( !uriOkMinTime.containsKey(uri) )
+				uriOkMinTime.put(uri, Long.MAX_VALUE);
+			
+			uriOkCount.add(uri, 1L);
+			uriOkTotalTime.add(uri, time);
+			uriOkMinTime.put(uri, Math.min(uriOkMinTime.get(uri), time));
+			uriOkMaxTime.put(uri, Math.max(uriOkMaxTime.get(uri), time));
+		}
 		
-//		String str = EntityUtils.toString(entity, "UTF-8");
-//		System.out.println("RESULT: " + str);
-		entity.consumeContent();
+		uriTotalRequest.add(uri, 1L);
 	}
 	
 	private String createQueryString( Map<String, String> params ) {
@@ -274,18 +304,68 @@ public class Client extends Thread {
 		this.okMaxTime = okMaxTime;
 	}
 
-	public Map<Integer, Integer> getStatusAggregate() {
+	public ZeroBasedMap<Integer, Long> getStatusAggregate() {
 		return statusAggregate;
 	}
 	
+	public ZeroBasedMap<String, Long> getUriOkCount() {
+		return uriOkCount;
+	}
+
+	public void setUriOkCount(ZeroBasedMap<String, Long> uriOkCount) {
+		this.uriOkCount = uriOkCount;
+	}
+
+	public ZeroBasedMap<String, Long> getUriOkTotalTime() {
+		return uriOkTotalTime;
+	}
+
+	public void setUriOkTotalTime(ZeroBasedMap<String, Long> uriOkTotalTime) {
+		this.uriOkTotalTime = uriOkTotalTime;
+	}
+
+	public Map<String, Long> getUriOkMinTime() {
+		return uriOkMinTime;
+	}
+
+	public void setUriOkMinTime(ZeroBasedMap<String, Long> uriOkMinTime) {
+		this.uriOkMinTime = uriOkMinTime;
+	}
+
+	public Map<String, Long> getUriOkMaxTime() {
+		return uriOkMaxTime;
+	}
+
+	public void setUriOkMaxTime(ZeroBasedMap<String, Long> uriOkMaxTime) {
+		this.uriOkMaxTime = uriOkMaxTime;
+	}
+
+	public Map<String, ZeroBasedMap<Integer, Long>> getUriStatusAggregate() {
+		return uriStatusAggregate;
+	}
+
+	public void setUriTotalRequest(ZeroBasedMap<String, Long> uriTotalRequest) {
+		this.uriTotalRequest = uriTotalRequest;
+	}
+
+	public ZeroBasedMap<String, Long> getUriTotalRequest() {
+		return uriTotalRequest;
+	}
+
 	@Override
 	public String toString() {
-		return "Client [errorConnect=" + errorConnect + ", errorSocketTimeout="
-				+ errorSocketTimeout + ", errorUnknown=" + errorUnknown
+		return "Client [client=" + client + ", errorConnect=" + errorConnect
+				+ ", errorSocketTimeout=" + errorSocketTimeout
+				+ ", errorUnknown=" + errorUnknown + ", host=" + host
 				+ ", okCount=" + okCount + ", okMaxTime=" + okMaxTime
 				+ ", okMinTime=" + okMinTime + ", okTotalTime=" + okTotalTime
-				+ ", repeatCount=" + repeatCount + ", statusAggregate="
-				+ statusAggregate + ", totalRequestCount=" + totalRequestCount
+				+ ", repeatCount=" + repeatCount + ", requests=" + requests
+				+ ", statusAggregate=" + statusAggregate
+				+ ", totalRequestCount=" + totalRequestCount + ", uriOkCount="
+				+ uriOkCount + ", uriOkMaxTime=" + uriOkMaxTime
+				+ ", uriOkMinTime=" + uriOkMinTime + ", uriOkTotalTime="
+				+ uriOkTotalTime + ", uriStatusAggregate=" + uriStatusAggregate
 				+ "]";
 	}
+
 }
