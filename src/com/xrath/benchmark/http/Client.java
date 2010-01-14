@@ -63,6 +63,7 @@ public class Client extends Thread {
 	private ZeroBasedMap<String, Long> uriOkMaxTime = new ZeroBasedMap<String, Long>();
 	
 	private Map<String, ZeroBasedMap<Integer, Long>> uriStatusAggregate = new HashMap<String, ZeroBasedMap<Integer, Long>>();
+	private String hostHeader;
 	
 	public Client() {
 		HttpParams httpParams = new BasicHttpParams();
@@ -136,7 +137,11 @@ public class Client extends Thread {
 		for(Map.Entry<String, String> entry : headers.entrySet()) { 
 			if( entry.getKey().equalsIgnoreCase("Content-Length") )
 				continue;
-			base.addHeader(entry.getKey(), entry.getValue());
+			if( entry.getKey().equalsIgnoreCase("Host") ) {
+				base.addHeader("Host", this.hostHeader);
+			} else {
+				base.addHeader(entry.getKey(), entry.getValue());
+			}
 		}
 		
 		Map<String, String> parameters = (Map<String, String>)req.get("PARAMETERS");
@@ -231,6 +236,7 @@ public class Client extends Thread {
 //		this.host = host;
 		URL url = new URL(host);
 		this.host = url.getProtocol() + "://" + url.getHost();
+		this.hostHeader = url.getHost();
 		if( url.getPort()!=-1 ) {
 			this.host += ":" + url.getPort();
 		}
