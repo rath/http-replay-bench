@@ -50,6 +50,7 @@ public class Reporter {
 		
 		codeLabel.put(200, "OK");
 		codeLabel.put(302, "Moved");
+		codeLabel.put(400, "Bad request");
 		codeLabel.put(403, "Forbidden");
 		codeLabel.put(404, "Not found");
 		codeLabel.put(500, "Server error");
